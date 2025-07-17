@@ -1,6 +1,6 @@
 // src/game/types.ts
 
-export type CellType = "empty" | "wall" | "stairs" | "toilet" | "cooler";
+export type CellType = "empty" | "wall" | "stairs" | "toilet" | "cooler" | "exit";
 
 export interface MazeCell {
   type: CellType;
