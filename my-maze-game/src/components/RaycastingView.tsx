@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from "react";
-import { MazeCell, PlayerState, Sprite } from "../game/types";
+import { MazeCell, PlayerState, Sprite } from "@/game/types";
 
 interface Props {
   maze: MazeCell[][];

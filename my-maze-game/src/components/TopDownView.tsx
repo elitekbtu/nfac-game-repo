@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from "react";
-import { MazeCell, PlayerState } from "../game/types";
+import { MazeCell, PlayerState } from "@/game/types";
 
 interface TopDownViewProps {
   maze: MazeCell[][];

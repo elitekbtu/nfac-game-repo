@@ -1,10 +1,10 @@
 import React, { useState, useRef } from "react";
-import { getPrebuiltBuilding, regenerateBuilding } from "../game/maze";
-import { PlayerState } from "../game/types";
-import { RaycastingView } from "../components/RaycastingView";
-import { TopDownView } from "../components/TopDownView";
-import { Minimap } from "../components/Minimap";
-import { HUD } from "../components/HUD";
+import { getPrebuiltBuilding, regenerateBuilding } from "@/game/maze";
+import { PlayerState } from "@/game/types";
+import { RaycastingView } from "@/components/RaycastingView";
+import { TopDownView } from "@/components/TopDownView";
+import { Minimap } from "@/components/Minimap";
+import { HUD } from "@/components/HUD";
 
 const FLOORS = 10;
 const WIDTH = 30;
