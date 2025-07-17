@@ -6,9 +6,10 @@ interface MinimapProps {
   player: PlayerState;
   radius?: number; // in cells
   fov?: number; // in radians
+  otherPlayers?: Record<string, { x: number; y: number; angle: number; name: string }>;
 }
 
-export const Minimap: React.FC<MinimapProps> = ({ maze, player, radius = 6, fov = Math.PI / 2 }) => {
+export const Minimap: React.FC<MinimapProps> = ({ maze, player, radius = 6, fov = Math.PI / 2, otherPlayers = {} }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -57,9 +58,26 @@ export const Minimap: React.FC<MinimapProps> = ({ maze, player, radius = 6, fov 
     ctx.fillStyle = "#00bfff";
     ctx.fill();
     ctx.globalAlpha = 1.0;
+    // Draw other players
+    Object.values(otherPlayers).forEach(p => {
+      const dx = p.x - player.x;
+      const dy = p.y - player.y;
+      if (Math.abs(dx) > radius || Math.abs(dy) > radius) return;
+      const px = center + dx * scale;
+      const py = center + dy * scale;
+      ctx.beginPath();
+      ctx.arc(px, py, scale * 0.28, 0, 2 * Math.PI);
+      ctx.fillStyle = "#ff5555";
+      ctx.fill();
+      // Имя игрока
+      ctx.fillStyle = "#fff";
+      ctx.font = `${Math.round(scale * 0.7)}px sans-serif`;
+      ctx.textAlign = "center";
+      ctx.fillText(p.name, px, py - scale * 0.4);
+    });
     // Draw player
     ctx.beginPath();
-    ctx.arc(center, center, scale * 0.3, 0, 2 * Math.PI);
+    ctx.arc(center, center, scale * 0.35, 0, 2 * Math.PI);
     ctx.fillStyle = "#fff";
     ctx.fill();
     // Draw player direction
@@ -67,9 +85,9 @@ export const Minimap: React.FC<MinimapProps> = ({ maze, player, radius = 6, fov 
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(center, center);
-    ctx.lineTo(center + Math.cos(player.angle) * scale * 1.2, center + Math.sin(player.angle) * scale * 1.2);
+    ctx.lineTo(center + Math.cos(player.angle) * scale * 0.7, center + Math.sin(player.angle) * scale * 0.7);
     ctx.stroke();
     ctx.restore();
-  }, [maze, player, radius, fov]);
-  return <canvas ref={canvasRef} width={160} height={160} style={{ borderRadius: '50%', background: '#222', boxShadow: '0 0 8px #000', position: 'absolute', top: 16, right: 16, zIndex: 10 }} />;
+  }, [maze, player, radius, fov, otherPlayers]);
+  return <canvas ref={canvasRef} width={240} height={240} style={{ background: '#222', borderRadius: 16, boxShadow: '0 0 8px #000', width: '100%', maxWidth: 240, height: 'auto' }} />;
 }; 
