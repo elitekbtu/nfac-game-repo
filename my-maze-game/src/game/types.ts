@@ -1,6 +1,12 @@
 // src/game/types.ts
 
-export type CellType = "empty" | "wall" | "stairs" | "toilet" | "cooler" | "exit";
+export type CellType = "empty" | "wall" | "stairs" | "toilet" | "cooler" | "exit" | "pit" | "spikes" | "movingWall" | "medkit";
+
+export interface PlayerNeeds {
+  thirst: number;
+  toilet: number;
+  health: number;  // Новый параметр здоровья
+}
 
 export interface MazeCell {
   type: CellType;

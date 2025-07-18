@@ -49,6 +49,8 @@ export const RaycastingView: React.FC<Props> = ({ maze, initialPlayer, onPlayerS
   const toiletTex = useImageTexture("/textures/toilet.png");
   const stairsTex = useImageTexture("/textures/exit.png");
   const doorTex = useImageTexture("/textures/door.png");
+  const medkitTex = useImageTexture("/textures/medkit.png");
+  const fireTex = useImageTexture("/textures/fire.png");
 
   // Debug: проверяем загрузку текстур
   useEffect(() => {
@@ -58,7 +60,9 @@ export const RaycastingView: React.FC<Props> = ({ maze, initialPlayer, onPlayerS
       cooler: !!coolerTex,
       toilet: !!toiletTex,
       stairs: !!stairsTex,
-      door: !!doorTex
+      door: !!doorTex,
+      medkit: !!medkitTex,
+      fire: !!fireTex
     });
     console.log("Texture details:", {
       wall: wallTex,
@@ -66,9 +70,11 @@ export const RaycastingView: React.FC<Props> = ({ maze, initialPlayer, onPlayerS
       cooler: coolerTex,
       toilet: toiletTex,
       stairs: stairsTex,
-      door: doorTex
+      door: doorTex,
+      medkit: medkitTex,
+      fire: fireTex
     });
-  }, [wallTex, ceilTex, coolerTex, toiletTex, stairsTex, doorTex]);
+  }, [wallTex, ceilTex, coolerTex, toiletTex, stairsTex, doorTex, medkitTex, fireTex]);
 
   useEffect(() => { playerStateRef.current = initialPlayer; }, [initialPlayer]);
 
@@ -98,7 +104,7 @@ export const RaycastingView: React.FC<Props> = ({ maze, initialPlayer, onPlayerS
       window.removeEventListener("keyup", handleKeyUp);
       cancelAnimationFrame(animationFrameId);
     };
-  }, [maze, fov, corridor, wallTex, ceilTex, coolerTex, toiletTex, stairsTex, doorTex]);
+  }, [maze, fov, corridor, wallTex, ceilTex, coolerTex, toiletTex, stairsTex, doorTex, medkitTex, fireTex]);
 
   const update = (deltaTime: number) => {
     const { angle } = playerStateRef.current;
@@ -132,9 +138,11 @@ export const RaycastingView: React.FC<Props> = ({ maze, initialPlayer, onPlayerS
     const cellAtNewX = maze[Math.floor(y)][Math.floor(newX + Math.sign(dx) * COLLISION_MARGIN)];
     const cellAtNewY = maze[Math.floor(newY + Math.sign(dy) * COLLISION_MARGIN)][Math.floor(x)];
     
-    // Проверяем, что клетка пустая (не стена и не объект)
-    if (cellAtNewX?.type === "empty") x = newX;
-    if (cellAtNewY?.type === "empty") y = newY;
+    // Проверяем, что клетка проходима (пустая, аптечка или ловушка)
+    if (cellAtNewX?.type === "empty" || cellAtNewX?.type === "medkit" || 
+        cellAtNewX?.type === "pit" || cellAtNewX?.type === "spikes" || cellAtNewX?.type === "movingWall") x = newX;
+    if (cellAtNewY?.type === "empty" || cellAtNewY?.type === "medkit" || 
+        cellAtNewY?.type === "pit" || cellAtNewY?.type === "spikes" || cellAtNewY?.type === "movingWall") y = newY;
     playerStateRef.current = { ...playerStateRef.current, x, y };
     onPlayerStateChange({ ...playerStateRef.current });
   };
@@ -214,6 +222,10 @@ export const RaycastingView: React.FC<Props> = ({ maze, initialPlayer, onPlayerS
         tex = coolerTex;
       } else if (cellType === 'stairs') {
         tex = doorTex; // Используем дверь вместо выхода
+      } else if (cellType === 'medkit') {
+        tex = medkitTex; // Используем текстуру аптечки
+      } else if (cellType === 'pit' || cellType === 'spikes' || cellType === 'movingWall') {
+        tex = fireTex; // Используем текстуру огня для ловушек
       }
       
       if (!tex) {
@@ -224,7 +236,20 @@ export const RaycastingView: React.FC<Props> = ({ maze, initialPlayer, onPlayerS
         if ((side === 0 && cosRay > 0) || (side === 1 && sinRay < 0)) {
           texX = tex.width - texX - 1;
         }
-        ctx.drawImage(tex, texX, 0, 1, tex.height, i, drawStart, 1, lineHeight);
+        
+        // Для ловушек и аптечек делаем их меньше и прозрачными
+        if (cellType === 'medkit' || cellType === 'pit' || cellType === 'spikes' || cellType === 'movingWall') {
+          // Уменьшаем размер на 40%
+          const reducedHeight = lineHeight * 0.6;
+          const reducedStart = drawStart + (lineHeight - reducedHeight) / 2;
+          
+          // Устанавливаем прозрачность
+          ctx.globalAlpha = 0.7;
+          ctx.drawImage(tex, texX, 0, 1, tex.height, i, reducedStart, 1, reducedHeight);
+          ctx.globalAlpha = 1.0;
+        } else {
+          ctx.drawImage(tex, texX, 0, 1, tex.height, i, drawStart, 1, lineHeight);
+        }
       }
       // Lighting/shading
       ctx.globalAlpha = Math.min(perpWallDist / 10, 1);

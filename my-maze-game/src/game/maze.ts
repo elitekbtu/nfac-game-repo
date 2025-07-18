@@ -800,7 +800,64 @@ maze[farthest.y][farthest.x].type = 'exit';
 
 }
 
+// --- 6. Размещение ловушек и аптечек ---
+const emptyCells: {x: number, y: number}[] = [];
+for (let y = 1; y < height - 1; y++) {
+for (let x = 1; x < width - 1; x++) {
+if (maze[y][x].type === 'empty') {
+emptyCells.push({ x, y });
+}
+}
+}
 
+// Перемешиваем пустые клетки
+const shuffledCells = shuffle([...emptyCells]);
+
+// Размещаем ловушки (10% от пустых клеток)
+const trapCount = Math.floor(emptyCells.length * 0.1);
+for (let i = 0; i < trapCount && i < shuffledCells.length; i++) {
+const cell = shuffledCells[i];
+// Избегаем размещения ловушек рядом со стартом
+const distFromStart = Math.sqrt((cell.x - 1) ** 2 + (cell.y - 1) ** 2);
+if (distFromStart > 3) {
+// Случайно выбираем тип ловушки
+const trapType = Math.random();
+if (trapType < 0.4) {
+maze[cell.y][cell.x].type = 'pit';
+} else if (trapType < 0.7) {
+maze[cell.y][cell.x].type = 'spikes';
+} else {
+maze[cell.y][cell.x].type = 'movingWall';
+}
+}
+}
+
+// Размещаем аптечки (5% от пустых клеток) с минимальным расстоянием 7 блоков
+const medkitCount = Math.floor(emptyCells.length * 0.05);
+const placedMedkits: {x: number, y: number}[] = [];
+
+// Функция для проверки минимального расстояния до других аптечек
+function isFarEnoughFromMedkits(x: number, y: number, minDistance: number = 7): boolean {
+  for (const medkit of placedMedkits) {
+    const distance = Math.sqrt((x - medkit.x) ** 2 + (y - medkit.y) ** 2);
+    if (distance < minDistance) {
+      return false;
+    }
+  }
+  return true;
+}
+
+// Перебираем клетки для размещения аптечек
+for (let i = trapCount; i < shuffledCells.length && placedMedkits.length < medkitCount; i++) {
+  const cell = shuffledCells[i];
+  const distFromStart = Math.sqrt((cell.x - 1) ** 2 + (cell.y - 1) ** 2);
+  
+  // Проверяем, что клетка достаточно далеко от старта и от других аптечек
+  if (distFromStart > 2 && isFarEnoughFromMedkits(cell.x, cell.y, 7)) {
+    maze[cell.y][cell.x].type = 'medkit';
+    placedMedkits.push({x: cell.x, y: cell.y});
+  }
+}
 
 return maze;
 

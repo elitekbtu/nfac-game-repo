@@ -3,7 +3,7 @@ import StartPage from "./StartPage";
 import GamePage from "./GamePage";
 
 export default function Home() {
-  const [user, setUser] = useState<{ name: string } | null>(null);
+  const [user, setUser] = useState<{ name: string; character: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   if (!user) {

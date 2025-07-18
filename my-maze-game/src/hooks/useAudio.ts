@@ -6,11 +6,15 @@ interface AudioState {
   coolerSound: HTMLAudioElement | null;
   toiletSound: HTMLAudioElement | null;
   victorySound: HTMLAudioElement | null;
+  medkitSound: HTMLAudioElement | null;
+  launchSound: HTMLAudioElement | null;
   isBackgroundPlaying: boolean;
   isTransitionPlaying: boolean;
   isCoolerPlaying: boolean;
   isToiletPlaying: boolean;
   isVictoryPlaying: boolean;
+  isMedkitPlaying: boolean;
+  isLaunchPlaying: boolean;
 }
 
 export const useAudio = () => {
@@ -20,11 +24,15 @@ export const useAudio = () => {
     coolerSound: null,
     toiletSound: null,
     victorySound: null,
+    medkitSound: null,
+    launchSound: null,
     isBackgroundPlaying: false,
     isTransitionPlaying: false,
     isCoolerPlaying: false,
     isToiletPlaying: false,
     isVictoryPlaying: false,
+    isMedkitPlaying: false,
+    isLaunchPlaying: false,
   });
 
   const backgroundMusicRef = useRef<HTMLAudioElement | null>(null);
@@ -32,6 +40,8 @@ export const useAudio = () => {
   const coolerSoundRef = useRef<HTMLAudioElement | null>(null);
   const toiletSoundRef = useRef<HTMLAudioElement | null>(null);
   const victorySoundRef = useRef<HTMLAudioElement | null>(null);
+  const medkitSoundRef = useRef<HTMLAudioElement | null>(null);
+  const launchSoundRef = useRef<HTMLAudioElement | null>(null);
 
   // Инициализация звуков
   useEffect(() => {
@@ -61,17 +71,31 @@ export const useAudio = () => {
     victorySound.volume = 0.6;
     victorySoundRef.current = victorySound;
 
+    // Создаем элемент для звука аптечки
+    const medkitSound = new Audio('/sounds/confirm.wav');
+    medkitSound.volume = 0.5;
+    medkitSoundRef.current = medkitSound;
+
+    // Создаем элемент для звука запуска
+    const launchSound = new Audio('/music/launch.mp3');
+    launchSound.volume = 0.6;
+    launchSoundRef.current = launchSound;
+
     setAudioState({
       backgroundMusic: bgMusic,
       transitionSound: transitionSound,
       coolerSound: coolerSound,
       toiletSound: toiletSound,
       victorySound: victorySound,
+      medkitSound: medkitSound,
+      launchSound: launchSound,
       isBackgroundPlaying: false,
       isTransitionPlaying: false,
       isCoolerPlaying: false,
       isToiletPlaying: false,
       isVictoryPlaying: false,
+      isMedkitPlaying: false,
+      isLaunchPlaying: false,
     });
 
     // Очистка при размонтировании
@@ -95,6 +119,14 @@ export const useAudio = () => {
       if (victorySound) {
         victorySound.pause();
         victorySound.src = '';
+      }
+      if (medkitSound) {
+        medkitSound.pause();
+        medkitSound.src = '';
+      }
+      if (launchSound) {
+        launchSound.pause();
+        launchSound.src = '';
       }
     };
   }, []);
@@ -215,6 +247,40 @@ export const useAudio = () => {
     }
   };
 
+  // Функция для воспроизведения звука аптечки
+  const playMedkitSound = async () => {
+    if (medkitSoundRef.current && !audioState.isMedkitPlaying) {
+      try {
+        medkitSoundRef.current.currentTime = 0;
+        await medkitSoundRef.current.play();
+        setAudioState(prev => ({ ...prev, isMedkitPlaying: true }));
+
+        medkitSoundRef.current.onended = () => {
+          setAudioState(prev => ({ ...prev, isMedkitPlaying: false }));
+        };
+      } catch (error) {
+        console.error('Ошибка воспроизведения звука аптечки:', error);
+      }
+    }
+  };
+
+  // Функция для воспроизведения звука запуска
+  const playLaunchSound = async () => {
+    if (launchSoundRef.current && !audioState.isLaunchPlaying) {
+      try {
+        launchSoundRef.current.currentTime = 0;
+        await launchSoundRef.current.play();
+        setAudioState(prev => ({ ...prev, isLaunchPlaying: true }));
+
+        launchSoundRef.current.onended = () => {
+          setAudioState(prev => ({ ...prev, isLaunchPlaying: false }));
+        };
+      } catch (error) {
+        console.error('Ошибка воспроизведения звука запуска:', error);
+      }
+    }
+  };
+
   // Функция для настройки громкости
   const setVolume = (type: 'background' | 'transition', volume: number) => {
     if (type === 'background' && backgroundMusicRef.current) {
@@ -231,6 +297,8 @@ export const useAudio = () => {
     playCoolerSound,
     playToiletSound,
     playVictorySound,
+    playMedkitSound,
+    playLaunchSound,
     setVolume,
     isBackgroundPlaying: audioState.isBackgroundPlaying,
     isTransitionPlaying: audioState.isTransitionPlaying,

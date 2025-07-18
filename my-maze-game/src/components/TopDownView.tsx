@@ -34,6 +34,11 @@ export const TopDownView: React.FC<TopDownViewProps> = ({ maze, player }) => {
         } else if (cell.type === "toilet") {
           ctx.fillStyle = "#ffd700";
           ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+        } else if (cell.type === "medkit") {
+          ctx.fillStyle = "#00ff00";
+          ctx.beginPath();
+          ctx.arc((x + 0.5) * cellSize, (y + 0.5) * cellSize, cellSize * 0.3, 0, 2 * Math.PI);
+          ctx.fill();
         }
       }
     }

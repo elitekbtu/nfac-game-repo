@@ -46,6 +46,18 @@ export const Minimap: React.FC<MinimapProps> = ({ maze, player, radius = 6, fov 
         } else if (cell.type === "toilet") {
           ctx.fillStyle = "#ffd700";
           ctx.beginPath(); ctx.arc(px, py, scale * 0.25, 0, 2 * Math.PI); ctx.fill();
+        } else if (cell.type === "medkit") {
+          // Аптечки - зеленые, маленькие и прозрачные
+          ctx.globalAlpha = 0.6;
+          ctx.fillStyle = "#00ff00";
+          ctx.beginPath(); ctx.arc(px, py, scale * 0.15, 0, 2 * Math.PI); ctx.fill();
+          ctx.globalAlpha = 1.0;
+        } else if (cell.type === "pit" || cell.type === "spikes" || cell.type === "movingWall") {
+          // Ловушки - красные, маленькие и прозрачные
+          ctx.globalAlpha = 0.6;
+          ctx.fillStyle = "#ff0000";
+          ctx.beginPath(); ctx.arc(px, py, scale * 0.15, 0, 2 * Math.PI); ctx.fill();
+          ctx.globalAlpha = 1.0;
         }
       }
     }
