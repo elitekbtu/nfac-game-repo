@@ -13,7 +13,7 @@ import { ref, set, onValue, remove, increment, push, onDisconnect } from "fireba
 import { useRef as useReactRef } from "react";
 import { useAudio } from "@/hooks/useAudio";
 
-const FLOORS = 10;
+const FLOORS = 3;
 const WIDTH = 50;
 const HEIGHT = 50;
 const INITIAL_NEEDS = { thirst: 100, toilet: 100, health: 100 };
