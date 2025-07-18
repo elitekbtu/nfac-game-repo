@@ -7,13 +7,20 @@ interface HUDProps {
   toilet: number;
   gameOver: boolean;
   onRestart: () => void;
+  isAudioPlaying?: boolean;
 }
 
-export const HUD: React.FC<HUDProps> = ({ floor, totalFloors, thirst, toilet, gameOver, onRestart }) => {
+export const HUD: React.FC<HUDProps> = ({ floor, totalFloors, thirst, toilet, gameOver, onRestart, isAudioPlaying }) => {
   return (
     <div className="absolute top-8 left-1/2 -translate-x-1/2 w-[520px] max-w-full z-20 pointer-events-none text-white font-sans select-none">
       <div className="flex justify-between items-center mb-4">
         <div className="text-3xl font-extrabold tracking-wide drop-shadow">Этаж {floor} / {totalFloors}</div>
+        {isAudioPlaying !== undefined && (
+          <div className="flex items-center gap-2">
+            <span className="text-lg">{isAudioPlaying ? '🔊' : '🔇'}</span>
+            <span className="text-sm text-gray-300">{isAudioPlaying ? 'Звук' : 'Тишина'}</span>
+          </div>
+        )}
       </div>
       <div className="flex gap-8 mb-2">
         {/* Жажда */}

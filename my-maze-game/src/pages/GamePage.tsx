@@ -8,6 +8,7 @@ import { HUD } from "@/components/HUD";
 import { db } from "../../firebase";
 import { ref, set, onValue, remove, increment, push, onDisconnect } from "firebase/database";
 import { useRef as useReactRef } from "react";
+import { useAudio } from "@/hooks/useAudio";
 
 const FLOORS = 10;
 const WIDTH = 30;
@@ -22,6 +23,9 @@ interface GamePageProps {
 }
 
 export default function GamePage({ user, onNameTaken }: GamePageProps) {
+  // Инициализация звуков
+  const { startBackgroundMusic, stopBackgroundMusic, playTransitionSound, playCoolerSound, playToiletSound, playVictorySound, isBackgroundPlaying } = useAudio();
+  
   const [building, setBuilding] = useState(() => {
     // Создаём массив этажей, последний с выходом
     return Array.from({ length: FLOORS }, (_, i) => generateMaze(WIDTH, HEIGHT, i === FLOORS - 1));
@@ -44,6 +48,13 @@ export default function GamePage({ user, onNameTaken }: GamePageProps) {
   const [fadeText, setFadeText] = useState<string | null>(null);
   const [startTime, setStartTime] = useState<number>(Date.now());
   const [showVictory, setShowVictory] = useState(false);
+
+  // Запуск фоновой музыки при старте игры
+  useEffect(() => {
+    if (!gameOver && !isBackgroundPlaying) {
+      startBackgroundMusic();
+    }
+  }, [gameOver, isBackgroundPlaying, startBackgroundMusic]);
 
   // Firebase effects remain the same...
   useEffect(() => {
@@ -79,8 +90,11 @@ export default function GamePage({ user, onNameTaken }: GamePageProps) {
       const chatRef = ref(db, 'chat');
       remove(chatRef);
       setChatMessages([]);
+      
+      // Останавливаем фоновую музыку при завершении игры
+      stopBackgroundMusic();
     }
-  }, [gameOver]);
+  }, [gameOver, stopBackgroundMusic]);
 
   // Needs management with blood overlay
   React.useEffect(() => {
@@ -138,25 +152,33 @@ export default function GamePage({ user, onNameTaken }: GamePageProps) {
 
   function handleDrink() {
     setNeeds(n => ({ ...n, thirst: Math.min(100, n.thirst + 60) }));
+    // Воспроизводим звук кулера при питье
+    playCoolerSound();
   }
   function handleToilet() {
     setNeeds(n => ({ ...n, toilet: Math.min(100, n.toilet + 60) }));
+    // Воспроизводим звук туалета при использовании
+    playToiletSound();
   }
   function handleNextFloor() {
     if (floor < FLOORS && !isTransitioning) {
       setIsTransitioning(true);
       setFade(true);
       setFadeText('Пусть победит сильнейший!');
+      
+      // Воспроизводим звук перехода
+      playTransitionSound();
+      
       setTimeout(() => {
         setFloor(floor + 1);
         // Случайная пустая клетка
         const maze = building[floor];
         const pos = getRandomEmptyCell(maze);
         setPlayer({ ...pos, angle: 0 });
-        // Восстанавливаем статы на 50 единиц
+        // Восстанавливаем статы на 5 единиц
         setNeeds(n => ({
-          thirst: Math.min(100, n.thirst + 50),
-          toilet: Math.min(100, n.toilet + 50)
+          thirst: Math.min(100, n.thirst + 5),
+          toilet: Math.min(100, n.toilet + 5)
         }));
         setFade(false);
         setFadeText(null);
@@ -176,6 +198,9 @@ export default function GamePage({ user, onNameTaken }: GamePageProps) {
     setFloor(1);
     setStartTime(Date.now());
     setBuilding(Array.from({ length: FLOORS }, (_, i) => generateMaze(WIDTH, HEIGHT, i === FLOORS - 1)));
+    
+    // Перезапускаем фоновую музыку
+    startBackgroundMusic();
   }
 
   function handlePlayerStateChange(newState: PlayerState) {
@@ -309,6 +334,11 @@ export default function GamePage({ user, onNameTaken }: GamePageProps) {
             <span className="text-yellow-400 font-bold">FLOOR: {floor}/{FLOORS}</span>
           </div>
           
+          {/* Audio indicator */}
+          <div className="bg-gray-900 px-4 py-2 border-2 border-gray-700">
+            <span className="text-green-400 font-bold">{isBackgroundPlaying ? '🔊' : '🔇'}</span>
+          </div>
+          
           {/* Restart button */}
           <button
             onClick={handleRestart}
@@ -405,7 +435,11 @@ export default function GamePage({ user, onNameTaken }: GamePageProps) {
                 <div className="absolute bottom-60 left-1/2 -translate-x-1/2 z-40 flex flex-col items-center">
                   <div className="mb-1 px-3 py-1 bg-green-900 text-green-200 rounded shadow text-lg font-bold">Покинуть лабиринт</div>
                   <button
-                    onClick={() => setShowVictory(true)}
+                    onClick={() => {
+                      setShowVictory(true);
+                      // Воспроизводим звук победы
+                      playVictorySound();
+                    }}
                     className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-bold rounded shadow border-b-2 border-green-900"
                   >
                     Победа!
@@ -423,6 +457,15 @@ export default function GamePage({ user, onNameTaken }: GamePageProps) {
         className="absolute bottom-24 right-4 z-20 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold border-2 border-gray-700"
       >
         {view === '3d' ? 'MAP MODE' : '3D MODE'}
+      </button>
+
+      {/* Audio toggle button */}
+      <button
+        onClick={() => isBackgroundPlaying ? stopBackgroundMusic() : startBackgroundMusic()}
+        className="absolute bottom-24 right-32 z-20 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold border-2 border-gray-700"
+        title={isBackgroundPlaying ? 'Остановить музыку' : 'Включить музыку'}
+      >
+        {isBackgroundPlaying ? '🔊' : '🔇'}
       </button>
 
       {/* Chat toggle button */}
