@@ -15,6 +15,7 @@ interface HUDProps {
   view?: '3d' | '2d';
   onViewChange?: () => void;
   onAudioToggle?: () => void;
+  showDeathPage?: boolean;
 }
 
 const CHARACTER_DATA = {
@@ -42,7 +43,8 @@ export const HUD: React.FC<HUDProps> = ({
   playerName,
   view,
   onViewChange,
-  onAudioToggle
+  onAudioToggle,
+  showDeathPage
 }) => {
   const characterInfo = character ? CHARACTER_DATA[character as keyof typeof CHARACTER_DATA] : null;
 
@@ -153,7 +155,7 @@ export const HUD: React.FC<HUDProps> = ({
       </div>
 
       {/* Game Over Screen */}
-      {gameOver && (
+      {gameOver && !showDeathPage && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/90">
           <div className="relative">
             {/* Blood splatter effect */}

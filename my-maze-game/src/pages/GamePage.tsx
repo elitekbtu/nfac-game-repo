@@ -7,6 +7,7 @@ import { Minimap } from "@/components/Minimap";
 import { HUD } from "@/components/HUD";
 import { FightAnimation } from "@/components/FightAnimation";
 import { Leaderboard } from "@/components/Leaderboard";
+import DeathPage from "./DeathPage";
 import { db } from "../../firebase";
 import { ref, set, onValue, remove, increment, push, onDisconnect } from "firebase/database";
 import { useRef as useReactRef } from "react";
@@ -52,6 +53,7 @@ export default function GamePage({ user, onNameTaken }: GamePageProps) {
   const [showFightAnimation, setShowFightAnimation] = useState(true);
   const [damagedTraps, setDamagedTraps] = useState<Set<string>>(new Set());
   const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [showDeathPage, setShowDeathPage] = useState(false);
 
   // Запуск фоновой музыки при старте игры
   useEffect(() => {
@@ -122,7 +124,10 @@ export default function GamePage({ user, onNameTaken }: GamePageProps) {
           setBloodOverlay(0);
         }
         
-        if (thirst === 0 || toilet === 0 || n.health <= 0) setGameOver(true);
+        if (thirst === 0 || toilet === 0 || n.health <= 0) {
+          setGameOver(true);
+          setShowDeathPage(true);
+        }
         return { thirst, toilet, health: n.health };
       });
     }, 100);
@@ -226,7 +231,11 @@ export default function GamePage({ user, onNameTaken }: GamePageProps) {
   }
 
   function handleMedkit() {
-    setNeeds(n => ({ ...n, health: Math.min(100, n.health + 50) }));
+    setNeeds(n => ({ 
+      ...n, 
+      health: Math.min(100, n.health + 50),
+      thirst: Math.min(100, n.thirst + 5) // Добавляем +5 к воде
+    }));
     
     // Воспроизводим звук аптечки
     playMedkitSound();
@@ -285,6 +294,7 @@ export default function GamePage({ user, onNameTaken }: GamePageProps) {
     setNeeds(INITIAL_NEEDS);
     setGameOver(false);
     setShowVictory(false);
+    setShowDeathPage(false);
     setShowFightAnimation(true);
     setDamagedTraps(new Set());
     setBloodOverlay(0);
@@ -299,6 +309,12 @@ export default function GamePage({ user, onNameTaken }: GamePageProps) {
 
   function handlePlayerStateChange(newState: PlayerState) {
     setPlayer(newState);
+  }
+
+  function handleBackToMenu() {
+    if (onNameTaken) {
+      onNameTaken();
+    }
   }
 
   function sendMessage() {
@@ -434,6 +450,7 @@ export default function GamePage({ user, onNameTaken }: GamePageProps) {
         view={view}
         onViewChange={() => setView(view === '3d' ? '2d' : '3d')}
         onAudioToggle={() => isBackgroundPlaying ? stopBackgroundMusic() : startBackgroundMusic()}
+        showDeathPage={showDeathPage}
       />
 
       {/* Minimap */}
@@ -609,6 +626,19 @@ export default function GamePage({ user, onNameTaken }: GamePageProps) {
         currentPlayerName={user?.name}
         currentPlayerCharacter={user?.character}
       />
+
+      {/* Death Page */}
+      {showDeathPage && (
+        <DeathPage
+          onRestart={handleRestart}
+          onBackToMenu={handleBackToMenu}
+          playerName={user?.name}
+          character={user?.character}
+          timeSurvived={Date.now() - startTime}
+          floorReached={floor}
+          totalFloors={FLOORS}
+        />
+      )}
     </div>
   );
 }

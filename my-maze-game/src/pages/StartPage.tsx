@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Leaderboard } from "@/components/Leaderboard";
+import IntroScreen from "@/components/IntroScreen";
 import { useAudio } from "@/hooks/useAudio";
 
 // Character data with DOOM-inspired stats
@@ -126,6 +127,7 @@ interface StartPageProps {
 
 export default function StartPage({ onStart, error: externalError }: StartPageProps) {
   const [screen, setScreen] = useState<"intro" | "register" | "character">("intro");
+  const [showIntro, setShowIntro] = useState(true);
   const [name, setName] = useState("");
   const [selectedCharacter, setSelectedCharacter] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -179,6 +181,10 @@ export default function StartPage({ onStart, error: externalError }: StartPagePr
     }
   };
 
+  const handleIntroComplete = () => {
+    setShowIntro(false);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -216,6 +222,10 @@ export default function StartPage({ onStart, error: externalError }: StartPagePr
   };
 
   // --- INTRO SCREEN ---
+  if (showIntro) {
+    return <IntroScreen onComplete={handleIntroComplete} />;
+  }
+
   if (screen === "intro") {
     return (
       <div className="min-h-screen flex items-center justify-center bg-black font-mono relative overflow-hidden">
