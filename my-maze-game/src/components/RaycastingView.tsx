@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from "react";
-import { MazeCell, PlayerState, Sprite } from "../game/types";
+import { MazeCell, PlayerState } from "../game/types";
 
 interface Props {
   maze: MazeCell[][];
@@ -12,7 +12,6 @@ const DEFAULT_FOV = Math.PI / 2; // 90 deg
 const DEFAULT_CORRIDOR = 1.0;
 const MOVE_SPEED = 2.5;
 const TURN_SPEED = Math.PI;
-const SPRITE_SCALE = 0.75;
 const COLLISION_MARGIN = 0.25;
 const RENDER_WIDTH = 800;
 const RENDER_HEIGHT = 600;
@@ -21,9 +20,16 @@ const RENDER_HEIGHT = 600;
 function useImageTexture(src: string) {
   const [img, setImg] = useState<HTMLImageElement | null>(null);
   useEffect(() => {
+    console.log(`Loading texture: ${src}`);
     const image = new window.Image();
     image.src = src;
-    image.onload = () => setImg(image);
+    image.onload = () => {
+      console.log(`Texture loaded successfully: ${src}`, image);
+      setImg(image);
+    };
+    image.onerror = () => {
+      console.error(`Failed to load texture: ${src}`);
+    };
   }, [src]);
   return img;
 }
@@ -38,11 +44,37 @@ export const RaycastingView: React.FC<Props> = ({ maze, initialPlayer, onPlayerS
 
   // Load textures
   const wallTex = useImageTexture("/textures/wall.png");
-  const floorTex = useImageTexture("/textures/floor.png");
   const ceilTex = useImageTexture("/textures/ceiling.png");
   const coolerTex = useImageTexture("/textures/cooler.png");
   const toiletTex = useImageTexture("/textures/toilet.png");
-  const stairsTex = useImageTexture("/textures/stairs.png");
+  const stairsTex = useImageTexture("/textures/exit.png");
+  const doorTex = useImageTexture("/textures/door.png");
+  const medkitTex = useImageTexture("/textures/medkit.png");
+  const fireTex = useImageTexture("/textures/fire.png");
+
+  // Debug: проверяем загрузку текстур
+  useEffect(() => {
+    console.log("Textures loaded:", {
+      wall: !!wallTex,
+      ceiling: !!ceilTex,
+      cooler: !!coolerTex,
+      toilet: !!toiletTex,
+      stairs: !!stairsTex,
+      door: !!doorTex,
+      medkit: !!medkitTex,
+      fire: !!fireTex
+    });
+    console.log("Texture details:", {
+      wall: wallTex,
+      ceiling: ceilTex,
+      cooler: coolerTex,
+      toilet: toiletTex,
+      stairs: stairsTex,
+      door: doorTex,
+      medkit: medkitTex,
+      fire: fireTex
+    });
+  }, [wallTex, ceilTex, coolerTex, toiletTex, stairsTex, doorTex, medkitTex, fireTex]);
 
   useEffect(() => { playerStateRef.current = initialPlayer; }, [initialPlayer]);
 
@@ -72,7 +104,7 @@ export const RaycastingView: React.FC<Props> = ({ maze, initialPlayer, onPlayerS
       window.removeEventListener("keyup", handleKeyUp);
       cancelAnimationFrame(animationFrameId);
     };
-  }, [maze, fov, corridor, wallTex, floorTex, ceilTex, coolerTex, toiletTex, stairsTex]);
+  }, [maze, fov, corridor, wallTex, ceilTex, coolerTex, toiletTex, stairsTex, doorTex, medkitTex, fireTex]);
 
   const update = (deltaTime: number) => {
     const { angle } = playerStateRef.current;
@@ -103,8 +135,14 @@ export const RaycastingView: React.FC<Props> = ({ maze, initialPlayer, onPlayerS
     // Коллизии
     const newX = x + dx;
     const newY = y + dy;
-    if (maze[Math.floor(y)][Math.floor(newX + Math.sign(dx) * COLLISION_MARGIN)]?.type === "empty") x = newX;
-    if (maze[Math.floor(newY + Math.sign(dy) * COLLISION_MARGIN)][Math.floor(x)]?.type === "empty") y = newY;
+    const cellAtNewX = maze[Math.floor(y)][Math.floor(newX + Math.sign(dx) * COLLISION_MARGIN)];
+    const cellAtNewY = maze[Math.floor(newY + Math.sign(dy) * COLLISION_MARGIN)][Math.floor(x)];
+    
+    // Проверяем, что клетка проходима (пустая, аптечка или ловушка)
+    if (cellAtNewX?.type === "empty" || cellAtNewX?.type === "medkit" || 
+        cellAtNewX?.type === "pit" || cellAtNewX?.type === "spikes" || cellAtNewX?.type === "movingWall") x = newX;
+    if (cellAtNewY?.type === "empty" || cellAtNewY?.type === "medkit" || 
+        cellAtNewY?.type === "pit" || cellAtNewY?.type === "spikes" || cellAtNewY?.type === "movingWall") y = newY;
     playerStateRef.current = { ...playerStateRef.current, x, y };
     onPlayerStateChange({ ...playerStateRef.current });
   };
@@ -125,13 +163,10 @@ export const RaycastingView: React.FC<Props> = ({ maze, initialPlayer, onPlayerS
       ctx.fillStyle = "#3a3a3a";
       ctx.fillRect(0, 0, width, height / 2);
     }
-    if (floorTex) {
-      ctx.drawImage(floorTex, 0, height / 2, width, height / 2);
-    } else {
-      ctx.fillStyle = "#595959";
-      ctx.fillRect(0, height / 2, width, height / 2);
-    }
-    const sprites: (Sprite & { dist: number })[] = [];
+    // Floor - simple gray color
+    ctx.fillStyle = "#808080";
+    ctx.fillRect(0, height / 2, width, height / 2);
+
     const zBuffer = new Array(width).fill(Infinity);
     for (let i = 0; i < width; i++) {
       const rayAngle = playerAngle - fov / 2 + (i / width) * fov;
@@ -165,9 +200,7 @@ export const RaycastingView: React.FC<Props> = ({ maze, initialPlayer, onPlayerS
         if (cell && cell.type !== "empty") {
           hit = true;
           cellType = cell.type;
-          if (cellType !== 'wall') {
-            sprites.push({ x: mapX + 0.5, y: mapY + 0.5, type: cellType, dist: 0 });
-          }
+          // Все объекты обрабатываем как 3D стены с соответствующими текстурами
         }
       }
       const perpWallDist = side === 0
@@ -181,6 +214,20 @@ export const RaycastingView: React.FC<Props> = ({ maze, initialPlayer, onPlayerS
       let wallX = side === 0 ? playerY + perpWallDist * sinRay : playerX + perpWallDist * cosRay;
       wallX -= Math.floor(wallX);
       let tex = wallTex;
+      
+      // Выбираем текстуру в зависимости от типа клетки
+      if (cellType === 'toilet') {
+        tex = toiletTex;
+      } else if (cellType === 'cooler') {
+        tex = coolerTex;
+      } else if (cellType === 'stairs') {
+        tex = doorTex; // Используем дверь вместо выхода
+      } else if (cellType === 'medkit') {
+        tex = medkitTex; // Используем текстуру аптечки
+      } else if (cellType === 'pit' || cellType === 'spikes' || cellType === 'movingWall') {
+        tex = fireTex; // Используем текстуру огня для ловушек
+      }
+      
       if (!tex) {
         ctx.fillStyle = "#666";
         ctx.fillRect(i, drawStart, 1, lineHeight);
@@ -189,43 +236,26 @@ export const RaycastingView: React.FC<Props> = ({ maze, initialPlayer, onPlayerS
         if ((side === 0 && cosRay > 0) || (side === 1 && sinRay < 0)) {
           texX = tex.width - texX - 1;
         }
-        ctx.drawImage(tex, texX, 0, 1, tex.height, i, drawStart, 1, lineHeight);
+        
+        // Для ловушек и аптечек делаем их меньше и прозрачными
+        if (cellType === 'medkit' || cellType === 'pit' || cellType === 'spikes' || cellType === 'movingWall') {
+          // Уменьшаем размер на 40%
+          const reducedHeight = lineHeight * 0.6;
+          const reducedStart = drawStart + (lineHeight - reducedHeight) / 2;
+          
+          // Устанавливаем прозрачность
+          ctx.globalAlpha = 0.7;
+          ctx.drawImage(tex, texX, 0, 1, tex.height, i, reducedStart, 1, reducedHeight);
+          ctx.globalAlpha = 1.0;
+        } else {
+          ctx.drawImage(tex, texX, 0, 1, tex.height, i, drawStart, 1, lineHeight);
+        }
       }
       // Lighting/shading
       ctx.globalAlpha = Math.min(perpWallDist / 10, 1);
       ctx.fillStyle = "black";
       ctx.fillRect(i, drawStart, 1, lineHeight);
       ctx.globalAlpha = 1.0;
-    }
-    // --- Sprite Casting (billboarded 2D sprites) ---
-    const uniqueSprites = Array.from(new Map(sprites.map(s => [`${s.x},${s.y}`, s])).values());
-    uniqueSprites.forEach(sprite => {
-      sprite.dist = Math.sqrt(Math.pow(playerX - sprite.x, 2) + Math.pow(playerY - sprite.y, 2));
-    });
-    uniqueSprites.sort((a, b) => b.dist - a.dist);
-    for (const sprite of uniqueSprites) {
-      const spriteX = sprite.x - playerX;
-      const spriteY = sprite.y - playerY;
-      const invDet = 1.0 / (Math.cos(playerAngle) * Math.sin(playerAngle) - Math.sin(playerAngle) * Math.cos(playerAngle));
-      const transformX = invDet * (Math.sin(playerAngle) * spriteX - Math.cos(playerAngle) * spriteY);
-      const transformY = invDet * (-Math.sin(playerAngle) * spriteX + Math.cos(playerAngle) * spriteY);
-      if (transformY <= 0) continue;
-      const spriteScreenX = Math.floor((width / 2) * (1 + transformX / transformY));
-      const spriteHeight = Math.abs(Math.floor(height / transformY)) * SPRITE_SCALE;
-      const drawStartY = -spriteHeight / 2 + height / 2;
-      const spriteWidth = spriteHeight;
-      const drawStartX = -spriteWidth / 2 + spriteScreenX;
-      let tex: HTMLImageElement | null = null;
-      if (sprite.type === "cooler") tex = coolerTex;
-      else if (sprite.type === "toilet") tex = toiletTex;
-      else if (sprite.type === "stairs") tex = stairsTex;
-      if (!tex) continue;
-      for (let stripe = Math.floor(drawStartX); stripe < drawStartX + spriteWidth; stripe++) {
-        if (stripe >= 0 && stripe < width && transformY < zBuffer[stripe]) {
-          const texX = Math.floor((stripe - drawStartX) * tex.width / spriteWidth);
-          ctx.drawImage(tex, texX, 0, 1, tex.height, stripe, drawStartY, 1, spriteHeight);
-        }
-      }
     }
     // Fade overlay
     if (fade) {

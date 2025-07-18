@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from "react";
-import { MazeCell, PlayerState } from "../game/types";
+import { MazeCell, PlayerState } from "@/game/types";
 
 interface TopDownViewProps {
   maze: MazeCell[][];
@@ -17,9 +17,10 @@ export const TopDownView: React.FC<TopDownViewProps> = ({ maze, player }) => {
     const height = canvas.height;
     ctx.clearRect(0, 0, width, height);
     const cellSize = Math.min(width / maze[0].length, height / maze.length);
-    // Draw maze
-    for (let y = 0; y < maze.length; y++) {
-      for (let x = 0; x < maze[0].length; x++) {
+    const RADIUS = 10;
+    // Draw maze только в радиусе вокруг игрока
+    for (let y = Math.max(0, Math.floor(player.y) - RADIUS); y <= Math.min(maze.length - 1, Math.floor(player.y) + RADIUS); y++) {
+      for (let x = Math.max(0, Math.floor(player.x) - RADIUS); x <= Math.min(maze[0].length - 1, Math.floor(player.x) + RADIUS); x++) {
         const cell = maze[y][x];
         if (cell.type === "wall") {
           ctx.fillStyle = "#444";
@@ -33,6 +34,11 @@ export const TopDownView: React.FC<TopDownViewProps> = ({ maze, player }) => {
         } else if (cell.type === "toilet") {
           ctx.fillStyle = "#ffd700";
           ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+        } else if (cell.type === "medkit") {
+          ctx.fillStyle = "#00ff00";
+          ctx.beginPath();
+          ctx.arc((x + 0.5) * cellSize, (y + 0.5) * cellSize, cellSize * 0.3, 0, 2 * Math.PI);
+          ctx.fill();
         }
       }
     }
